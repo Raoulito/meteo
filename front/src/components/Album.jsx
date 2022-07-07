@@ -29,7 +29,8 @@ const theme = createTheme();
 
 export default function Album() {
     const [city, setCity] = React.useState("");
-    console.log(city);
+    const [cityCoords, setCityCoords] = React.useState("");
+    const [domWeather, setDomWeather] = React.useState("");
 
     const API_KEY = "dd63984fe3f45789a13462ed645cff28";
 
@@ -37,38 +38,35 @@ export default function Album() {
         try {
             const response = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=10&appid=${API_KEY}`);
             const cities = await response.json();
-            console.log(cities);
-
-            for (let city of cities) {
-                localStorage.setItem("cityLat", cities[0].lat);
-                localStorage.setItem("cityLon", cities[0].lon);
+            if (cities) {
+                console.log(cities);
+                setCityCoords({
+                    cityLat: cities[0].lat,
+                    cityLon: cities[0].lon,
+                });
             }
-            return cities;
         } catch (error) {
             console.log(error);
         }
     }
 
-    const [domWeather, setDomWeather] = React.useState({});
-
     async function getWeather() {
         try {
-            const cityLat = localStorage.getItem("cityLat");
-            const cityLon = localStorage.getItem("cityLon");
+            const { cityLat, cityLon } = cityCoords;
             const response = await fetch(`http://api.openweathermap.org/data/2.5/weather?lat=${cityLat}&lon=${cityLon}&appid=${API_KEY}&units=metric `);
             const weather = await response.json();
-
             setDomWeather(weather);
         } catch (error) {
             console.log(error);
         }
     }
 
-
-    async function sendRequest() {
-        await getCoord();
-        await getWeather();
-    }
+    useEffect(() => {
+        if (cityCoords) {
+            console.log(cityCoords);
+            getWeather();
+        }
+    }, [cityCoords]);
 
     return (
         <ThemeProvider theme={theme}>
@@ -99,7 +97,7 @@ export default function Album() {
                         </Typography>
                         <Stack sx={{ pt: 4 }} direction="row" spacing={2} justifyContent="center">
                             <TextField label="Enter a city" focused onChange={(e) => setCity(e.target.value)} />
-                            <Button variant="contained" onClick={sendRequest}>
+                            <Button variant="contained" onClick={getCoord}>
                                 Let's go !
                             </Button>
                         </Stack>
@@ -111,21 +109,31 @@ export default function Album() {
                         <Grid>
                             <Card sx={{ height: "100%", display: "flex" }}>
                                 <CardContent sx={{ flexGrow: 1 }}>
-                                    <Typography gutterBottom variant="h5" component="h2">
-                                        Weather in {domWeather.name}
-                                    </Typography>
+                                    {domWeather && (
+                                        <>
+                                            <Typography gutterBottom variant="h5" component="h2">
+                                                Weather in {domWeather.name}
+                                            </Typography>
+                                            <CardMedia component="img" height="100px" width="100px" image={`http://openweathermap.org/img/wn/${domWeather.weather[0].icon}@2x.png`} alt={domWeather.weather[0].description} />
 
-                                    <Typography>Temperature : {domWeather.main.temp}°C</Typography>
+                                            <Typography>Temperature : {Math.round(domWeather.main.temp * 10) / 10}°C</Typography>
+                                            <Typography>Feels like : {Math.round(domWeather.main.feels_like * 10) / 10}°C</Typography>
 
-                                    <Typography>Feels like : {domWeather.main.feels_like}°C</Typography>
+                                            <Typography>Sky : {domWeather.weather[0].description}</Typography>
 
-                                    <Typography>Sky : {domWeather.weather[0].description}</Typography>
+                                            <Typography>Wind : {domWeather.wind.speed} km/h</Typography>
 
-                                    <Typography>Wind : {domWeather.wind.speed} km/h</Typography>
+                                            <Typography>Humidity : {domWeather.main.humidity} %</Typography>
 
-                                    <Typography>Humidity : {domWeather.main.humidity}%</Typography>
+                                            <Typography>Pressure : {domWeather.main.pressure} hPa</Typography>
 
-                                    <Typography>Pressure : {domWeather.main.pressure} hPa</Typography>
+                                            <Typography>Clouds : {domWeather.clouds.all} %</Typography>
+
+                                            <Typography>Sunrise : {new Date(domWeather.sys.sunrise * 1000).toLocaleTimeString()}</Typography>
+
+                                            <Typography>Sunset : {new Date(domWeather.sys.sunset * 1000).toLocaleTimeString()}</Typography>
+                                        </>
+                                    )}
                                 </CardContent>
                             </Card>
                         </Grid>
